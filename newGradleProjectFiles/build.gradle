@@ -1,0 +1,87 @@
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'application'
+
+mainClassName = ''
+ext { 
+  junitVersion      = '4.11'
+}
+
+
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'  // useful for making uberjar
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile 'junit:junit:4.11'
+}
+
+
+// uncomment for test printout
+//test {
+//    afterTest { desc, result ->
+//        println "Executing test ${desc.name} [${desc.className}] with result: ${result.resultType}"
+//    }
+//    testLogging.showStandardStreams = true
+//}
+
+// Setup group ID for this project
+group = ""
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+compileJava { 
+    options.debug = true 
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.13'
+}
+
+
+shadowJar {
+    mergeServiceFiles()
+    classifier = ''
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.SF'
+    exclude 'synchronize.properties'
+    exclude 'uploader.properties'
+    exclude 'test.properties'
+    exclude 'cockpitlite.properties'
+    exclude 'devpay_products.properties'
+    manifest {
+        attributes 'Main-Class': ''
+    }
+}
+
+artifacts {
+    archives shadowJar
+}
+
+def assembly = "myproject-0.1.0-SNAPSHOT.jar"
+def allInOne = "myproject.jar"
+
+task copyJar(type: Copy) {
+    from ("build/libs"){
+        include assembly
+    }
+    into "build"
+    rename { it.replace(assembly, allInOne) }
+}
+// Execute always copyJar
+shadowJar.finalizedBy copyJar
+// Run shadowJar as par of build
+jar.finalizedBy shadowJar
