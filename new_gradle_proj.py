@@ -22,11 +22,16 @@ def parse_args():
   parser = argparse.ArgumentParser()
   parser.add_argument("--d", help="project name", type=str)
   parser.add_argument("--p", help="path to project home", type=str)
+#  parser.add_argument("--g", help="group name (also the package path; e.g. com.rp", type=str)
+#  parser.add_argument("--m", help="main class name", type=str)
   return parser.parse_args()
 
 def build_root(root_name):  # assumes cur directory is the project root
+  path = os.path.abspath(os.path.join(".", root_name))
+  if os.path.exists(path):
+    return path
   os.mkdir(root_name)
-  return os.path.abspath(os.path.join(".", root_name))
+  return path
 
 def build_src(proj_path):
   os.makedirs(os.path.join(proj_path, "src", "main", "java"))
@@ -56,14 +61,3 @@ if __name__ == "__main__":
         sys.exit(1)
   else:
     raise ValueError("directory does not exist: {}.".format(args.p))
-#  os.makedirs("src/main/java")
-#  os.makedirs("src/test/java")
-  # gradle.properties
-  # gradlew
-  # gradle.bat
-  # build.gradle
-  # settings.gradle
-  #.gitignore
-  # src/main/java
-  # src/test/java
-
