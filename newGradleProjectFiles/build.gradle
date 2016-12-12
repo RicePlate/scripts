@@ -1,3 +1,5 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: 'idea'
@@ -5,11 +7,13 @@ apply plugin: 'eclipse'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'application'
 
-mainClassName = ''
-ext { 
+mainClassName = ''  // PUT YOUR MAIN CLASS HERE e.g., com.foo.MyMain
+ext {
   junitVersion      = '4.11'
+  h2oProjectVersion = "$h2oMajorVersion.$h2oBuild"
 }
 
+def getOsSpecificCommandLine(args) { return Os.isFamily(Os.FAMILY_WINDOWS) ? ['cmd', '/c' ] + args : args }
 
 buildscript {
     repositories {
@@ -22,10 +26,35 @@ buildscript {
 }
 
 repositories {
+    if (h2oBuild == '99999') mavenLocal()
     mavenCentral()
+    maven {
+        url "http://h2o-release.s3.amazonaws.com/h2o/master/3682/maven/repo/"
+    }
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs = ['src/main/java', 'web']
+        }
+    }
 }
 
 dependencies {
+    compile "ai.h2o:h2o-algos:${h2oProjectVersion}"
+    compile "ai.h2o:h2o-app:${h2oProjectVersion}"
+    compile "ai.h2o:h2o-core:${h2oProjectVersion}"
+    compile "ai.h2o:h2o-genmodel:${h2oProjectVersion}"
+//    compile "ai.h2o:h2o-persist-hdfs:${h2oProjectVersion}"
+    compile "ai.h2o:h2o-web:${h2oProjectVersion}"
+    // Groovy
+    compile 'org.codehaus.groovy:groovy-all:2.4.5'
+    compile 'org.fusesource.jansi:jansi:1.11'
+    compile 'jline:jline:2.13'
+    // to json
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.7.2'
+    compile 'com.fasterxml.jackson.module:jackson-module-jsonSchema:2.7.1'
     testCompile 'junit:junit:4.11'
 }
 
@@ -39,7 +68,7 @@ dependencies {
 //}
 
 // Setup group ID for this project
-group = ""
+group = ""  // PUT YOUR GROUP HERE e.g., com.foo
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -51,6 +80,21 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.13'
 }
 
+task buildElm << {
+    ProcessBuilder builder = new ProcessBuilder(Arrays.asList(
+            'elm', 
+            'make',
+            '', // PUT YOUR ELM SRC HERE
+            '--output=../../../web/www/wave/index.html',
+            '--warn'
+    ))
+    builder.directory(new File("src/main/elm"));
+    builder.redirectErrorStream(true)
+    Process process = builder.start()
+    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+    String line = null;
+    while( (line = reader.readLine())!=null ) System.out.println(line);
+}
 
 shadowJar {
     mergeServiceFiles()
@@ -63,16 +107,24 @@ shadowJar {
     exclude 'cockpitlite.properties'
     exclude 'devpay_products.properties'
     manifest {
-        attributes 'Main-Class': ''
+        attributes 'Main-Class': ''  // again put your MAIN CLASS HERE
     }
+    append 'web/www'
 }
+
+task cleanElm(type: Exec) {
+    commandLine getOsSpecificCommandLine(["rm", "src/main/elm/index.html"])
+    commandLine getOsSpecificCommandLine(["rm", "web/www/wave/index.html"])
+}
+
+clean.dependsOn cleanElm
 
 artifacts {
     archives shadowJar
 }
 
-def assembly = "myproject-0.1.0-SNAPSHOT.jar"
-def allInOne = "myproject.jar"
+def assembly = "<NAME OF JAR HERE>-0.1.0-SNAPSHOT.jar"
+def allInOne = "<NAME OF JAR HERE>.jar"
 
 task copyJar(type: Copy) {
     from ("build/libs"){
@@ -85,3 +137,7 @@ task copyJar(type: Copy) {
 shadowJar.finalizedBy copyJar
 // Run shadowJar as par of build
 jar.finalizedBy shadowJar
+
+build.dependsOn buildElm
+
+
