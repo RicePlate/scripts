@@ -50,15 +50,20 @@ def build_lib(proj_path):
 
 def build_dirs(proj_path):
   print("building data, models, submissions, and py_utils")
-  os.makedirs(os.path.join(proj_path, "data"))
-  os.makedirs(os.path.join(proj_path, "models"))
-  os.makedirs(os.path.join(proj_path, "submissions"))
-  os.makedirs(os.path.join(proj_path, "py_utils"))
+  init_dir(proj_path, "data", "data for competition")
+  init_dir(proj_path, "models", "models for competition")
+  init_dir(proj_path, "submissions", "submissions for competition")
+  init_dir(proj_path, "py_utils", "python utilities")
 
   # file holding previous submission number, useful for automatically
   # increasing submission numbers
   with open( os.path.join(proj_path, "submissions", "next"), 'w') as f:
     f.write("0")
+
+def init_dir(proj_path, dirname, readme_msg):
+  p = os.path.join(proj_path, dirname)
+  os.makedirs(p)
+  with open(os.path.join(p, "README.md"), 'w') as f: f.write(readme_msg)
 
 if __name__ == "__main__":
   args = parse_args()
